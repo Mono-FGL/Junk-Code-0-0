@@ -1,1 +1,46 @@
+#include <SPI.h>
+#include <SD.h>
 
+const int CS = 11;
+File myFile;
+
+int value = 10;
+int track = 1;
+
+void Facto(int sum, int k)
+{
+  int total = 0;
+  myFile.print(k);
+  myFile.print("x");
+  myFile.print(sum);
+  myFile.print("=");
+}
+
+void setup()
+{
+    Serial.begin(9600);
+    pinMode(CS, OUTPUT); 
+    if(!SD.begin(CS))
+    {
+        Serial.println("It's a broke..."); //SD card not in 
+        while(1); //While True (1 == true)
+    }
+    myFile = SD.open("TFY.txt", FILE_WRITE);
+    myFile.println("Enter the Matrix");
+    for(int ii = 0; ii < value; ii++)
+    {
+        if(ii > 0)
+        {
+          Facto(track, ii);
+          track = track*ii;
+          myFile.print("\t");
+          myFile.println(track);
+        }
+    }
+    myFile.close();
+}
+
+void loop()
+{
+
+}
