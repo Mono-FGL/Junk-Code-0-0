@@ -1,0 +1,131 @@
+#include <Wire.h> //Libary needed for I2C
+
+//Changing BNO settings
+#define BNOAddress 0x28
+#define OPR_MODE 0x3D
+#define UNIT_SEL 0x3B 
+
+
+//LED pins
+const int Northg = 3;
+const int Eastb = 6;
+const int Southw = 5;
+const int Westr = 9;
+int i2c_scanner()
+{
+  /* Looks for a single device and returns the address
+  Arguments: None
+  return 
+  - (int) address - the address of the I2C device
+  */
+
+  //For possible peripheral device addresses
+  for(int address = 1; address <= 127; address++)
+  {
+    Wire.beginTransmission(address); //begin transmission to address
+
+    if(!Wire.endTransmission())
+    {
+      return address; //if acknowledgedreturn address;
+    }
+  }
+  Serial.println("No device found");
+}
+
+void setup()
+{
+  Serial.begin(115200); //Fast baud rate
+  Wire.begin(); //Starting Arduino as controller device, no argument passed 
+
+  delay(1000);
+
+  //Pins
+  pinMode(Northg, OUTPUT);
+  pinMode(Eastb, OUTPUT);
+  pinMode(Southw, OUTPUT);
+  pinMode(Westr, OUTPUT);
+
+  //Scan for a peripheral device
+  Serial.println("Searching for device");
+  Serial.print("0x"); Serial.println(i2c_scanner(), HEX); // Converts to Hexadecimal signal 
+
+  // Operating Mode
+  Wire.beginTransmission(BNOAddress);
+  Wire.write(OPR_MODE);
+  Wire.write(1<<3); //Bit shifting 3 left
+  Wire.endTransmission();
+
+  // Unit Select 
+  Wire.beginTransmission(BNOAddress);
+  Wire.write(UNIT_SEL);
+  Wire.write(0<<2); //bit shifting 2 left
+  Wire.endTransmission();
+}
+
+void loop()
+{
+  Wire.beginTransmission(BNOAddress);
+  // 0x1A EUL_DATA_X
+  Wire.write(0x1A); // Angle register is at
+  Wire.endTransmission();
+  //Stop and begin to recieve information 
+  Wire.requestFrom(BNOAddress, 6); // Address and number of bytes to recieve
+  
+  // Read each byte (We requested 2)
+  uint8_t LSB = Wire.read(); // Least significant byte
+  uint8_t MSB = Wire.read(); // Most significant byte 
+
+  // Combine data and divide by 16 to convert to degrees
+  // 1 degree = 16 LSB
+  int Eul_x = (((int)MSB<<8 | LSB) >> 4);
+  LSB = Wire.read();
+  MSB = Wire.read();
+
+  int Eul_y = (((int)MSB<<8 | LSB) >> 4);
+  LSB = Wire.read();
+  MSB = Wire.read();
+
+  int Eul_z = (((int)MSB<<8 | LSB) >> 4);
+  LSB = Wire.read();
+  MSB = Wire.read();
+
+  Serial.print(Eul_x); Serial.print(", ");
+  Serial.print(Eul_y); Serial.print(", ");
+  Serial.println(Eul_z);
+
+  //Control North and South LED
+  if(Eul_z >= 30)
+  {
+    digitalWrite(Northg, HIGH);
+    digitalWrite(Southw, LOW);
+  }
+  else if(Eul_z <= -30)
+  {
+    digitalWrite(Northg, LOW);
+    digitalWrite(Southw, HIGH);
+  }
+  else if((Eul_z > -30) && (Eul_z < 30))
+  {
+    digitalWrite(Northg, LOW);
+    digitalWrite(Southw, LOW);
+  }
+
+  //Control East and West LED
+  if(Eul_y >= 30)
+  {
+    digitalWrite(Eastb, HIGH);
+    digitalWrite(Westr, LOW);
+  }
+  else if(Eul_y <= -30)
+  {
+    digitalWrite(Eastb, LOW);
+    digitalWrite(Westr, HIGH);
+  }
+  else if((Eul_y > -30) && (Eul_y < 30))
+  {
+    digitalWrite(Eastb, LOW);
+    digitalWrite(Westr, LOW);
+  }
+
+  delay(100);
+}
