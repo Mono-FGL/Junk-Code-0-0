@@ -1,0 +1,41 @@
+#include <Wire.h>
+#define SensorAddress 0x4D
+#define TempRegister 0x00  //0x is h(hexadecimal)
+
+int I2C_Scanner() {
+  for (int address = 1; address <= 127; address++) {
+    Wire.beginTransmission(address);
+    if (!Wire.endTransmission()) {
+      return address;
+    }
+  }
+  Serial.println("No device found :(");
+}
+
+int read_temp() {
+  //Get data from sensor
+  Wire.beginTransmission(SensorAddress);
+  Wire.write(TempRegister);
+  Wire.endTransmission();
+  Wire.requestFrom(SensorAddress, 1);
+  int tempReading = Wire.read();
+
+  return tempReading;
+}
+
+void setup() {
+  Serial.begin(115200);
+  Wire.begin();
+
+  delay(1000);
+
+  Serial.print("0x");
+  Serial.println(I2C_Scanner(), HEX);
+}
+
+void loop() {
+  Serial.print("Temperature: ");
+  Serial.print(read_temp());
+  Serial.println("C");
+  delay(1000);
+}
