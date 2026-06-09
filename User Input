@@ -1,0 +1,54 @@
+//Variables for reading Serial Input
+const byte numChars = 32;
+char receivedChars[numChars];  //it is numChars long
+bool newData = false;
+
+void receiveData()
+{
+  static byte ndx = 0;  //Index of where to store variable in the array (static will be remmeber even if function played again)
+  char startmarker = '<';
+  char endMarker = '>';
+  char rc;                             //recieved character
+  static bool recvInProgress = false;  // Is something being recieved?
+
+  while (Serial.available() > 0 && newData == false){
+    rc = Serial.read();
+  if (recvInProgress == true){
+    if (rc != endMarker){
+      receivedChars[ndx] = rc;
+      ndx++;
+      if (ndx >= numChars){
+        ndx = numChars - 1;
+      }
+    } 
+    else {
+      receivedChars[ndx] = '\0';  // terminate the string
+      recvInProgress = false;
+      ndx = 0;
+      newData = true;
+    }
+  }
+  else if(rc == startmarker){
+    recvInProgress = true;  //If reach a start marker then start recieving message
+    }
+  }
+}
+
+
+void showNewData() {
+  if (newData == true) {
+    Serial.println("This just in...");
+    Serial.println(receivedChars);
+    newData = false;
+  }
+}
+
+void setup() {
+  Serial.begin(9600);  // Baud Rate(Speed of communication) Bits per Second
+  Serial.println("<Arduino is Ready>");
+}
+
+void loop() {
+  receiveData();
+  showNewData();
+}
